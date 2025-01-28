@@ -87,10 +87,15 @@ if st.button("Analyze Stock"):
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-4",
-                messages=[{"role": "system", "content": "You are a financial analyst."},
-                          {"role": "user", "content": ai_prompt}]
+                messages=[
+                    {"role": "system", "content": "You are a financial analyst."},
+                    {"role": "user", "content": ai_prompt}
+                ]
             )
-            st.write(response["choices"][0]["message"]["content"])
-        except Exception as e:
-            st.error(f"⚠️ AI analysis failed. Try again later. Error: {e}")
+            ai_output = response["choices"][0]["message"]["content"]
+            st.write(ai_output)
+
+        except openai.error.OpenAIError as e:
+            st.error(f"⚠️ AI analysis failed. Error: {str(e)}")
+
 
