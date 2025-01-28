@@ -2,25 +2,27 @@ import os
 import requests
 import streamlit as st
 from dotenv import load_dotenv
-from langchain_community.chat_models import ChatOpenAI  # Fixed Import for LangChain 0.1+
+from langchain_community.chat_models import ChatOpenAI  # Ensure langchain_community import
 from langchain.schema import HumanMessage
 
-# Load environment variables (for local development)
+# ✅ FIXED: Set page config as the very first Streamlit command
+st.set_page_config(page_title="📈 AI Stock Analyzer", layout="wide")
+
+# Load environment variables
 load_dotenv()
 
 # Get API keys
 FMP_API_KEY = os.getenv("FMP_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# ✅ Debugging: Check if API keys are loaded
+# Debugging: Check if API keys are loaded
 st.write(f"🔍 DEBUG: FMP_API_KEY Loaded: {'Yes' if FMP_API_KEY else 'No'}")
 st.write(f"🔍 DEBUG: OPENAI_API_KEY Loaded: {'Yes' if OPENAI_API_KEY else 'No'}")
 
 if not FMP_API_KEY or not OPENAI_API_KEY:
-    st.error("❌ API keys are missing. Ensure they are set as GitHub Secrets and passed correctly in GitHub Actions.")
+    st.error("❌ API keys are missing. Ensure they are set as GitHub Secrets and passed correctly.")
 
-# Streamlit App Config
-st.set_page_config(page_title="📈 AI Stock Analyzer", layout="wide")
+# Streamlit App Title
 st.title("📊 AI-Powered Stock Analysis Dashboard")
 
 # User Input
@@ -86,4 +88,3 @@ if st.button("Analyze Stock"):
 
             st.subheader("🤖 AI Stock Assessment")
             st.write(ai_analysis)
-
