@@ -28,42 +28,36 @@ st.title("📊 AI-Powered Stock Analysis Dashboard")
 # User Input
 ticker = st.text_input("Enter Stock Ticker (e.g., AAPL)", value="AAPL").upper()
 
-# ✅ Function to Fetch Stock Profile (Fixed)
+# ✅ Function to Fetch Stock Profile
 def fetch_stock_profile(ticker):
     url = f"https://financialmodelingprep.com/api/v3/profile/{ticker}?apikey={FMP_API_KEY}"
     response = requests.get(url)
-    data = response.json()  # Get JSON data
+    data = response.json()
 
-    # ✅ Debugging: Show API response
-    st.write(f"🔍 DEBUG: API Response for {ticker}: {data}")
-
-    # ✅ Ensure it's a valid list with data
     if isinstance(data, list) and len(data) > 0:
-        return data[0]  # Return the first object
-    else:
-        return None  # Return None if no data is found
+        return data[0]  # Return first object
+    return None
 
-# ✅ Function to Fetch Financial Statements (Income, Balance, Cash Flow)
+# ✅ Function to Fetch Financial Statements
 def fetch_financials(endpoint, ticker):
     url = f"https://financialmodelingprep.com/api/v3/{endpoint}/{ticker}?apikey={FMP_API_KEY}"
     response = requests.get(url)
     data = response.json()
-    
-    if isinstance(data, list) and len(data) > 0:
-        return data[0]  # Return the latest available financial data
-    else:
-        return None
 
-# ✅ Function to Analyze Stock with AI (Using GPT-4)
+    if isinstance(data, list) and len(data) > 0:
+        return data[0]  # Return latest available data
+    return None
+
+# ✅ Function to Analyze Stock with AI
 def analyze_stock_with_ai(company, income_statement, balance_sheet, cash_flow):
     llm = ChatOpenAI(model_name="gpt-4", temperature=0.2, openai_api_key=OPENAI_API_KEY)
-    
+
     prompt = f"""
     Analyze the stock {company['companyName']} ({ticker}) based on the following data:
 
     **Stock Profile:**
     - Stock Price: ${company['price']}
-    - Market Cap: ${company['mktCap']}
+    - Market Cap: ${company['mktCap']:,}
     - Industry: {company['industry']}
     - Sector: {company['sector']}
     - 52-Week High: ${company['range'].split('-')[1]}
@@ -104,39 +98,33 @@ if st.button("Analyze Stock"):
             balance_data = fetch_financials("balance-sheet-statement", ticker)
             cash_flow_data = fetch_financials("cash-flow-statement", ticker)
 
-        # ✅ If company data exists, display it
         if company:
-            st.subheader(f"📊 {company['companyName']} ({company['symbol']})")
-            st.image(company["image"], width=100)
+            st.markdown(f"### **📊 {company['companyName']} ({company['symbol']})**")
+            st.image(company["image"], width=120)
 
+            # ✅ Layout: Two Columns
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("Stock Price", f"${company['price']}")
-                st.metric("Market Cap", f"${company['mktCap']:,}")
-                st.metric("52-Week High", f"${company['range'].split('-')[1]}")
+                st.metric("💰 Stock Price", f"${company['price']}")
+                st.metric("🏢 Market Cap", f"${company['mktCap']:,}")
+                st.metric("📈 52-Week High", f"${company['range'].split('-')[1]}")
             with col2:
-                st.metric("52-Week Low", f"${company['range'].split('-')[0]}")
-                st.metric("Industry", company["industry"])
-                st.metric("Sector", company["sector"])
+                st.metric("📉 52-Week Low", f"${company['range'].split('-')[0]}")
+                st.metric("🏭 Industry", company["industry"])
+                st.metric("📡 Sector", company["sector"])
 
-            # ✅ Display Financial Statements
+            # ✅ Financial Statements in Expanders
             if income_data:
-                st.subheader("📜 Income Statement (Latest Year)")
-                st.write(income_data)
-            else:
-                st.warning("⚠️ No Income Statement data available.")
+                with st.expander("📜 Income Statement (Latest Year)"):
+                    st.write(income_data)
 
             if balance_data:
-                st.subheader("📊 Balance Sheet (Latest Year)")
-                st.write(balance_data)
-            else:
-                st.warning("⚠️ No Balance Sheet data available.")
+                with st.expander("📊 Balance Sheet (Latest Year)"):
+                    st.write(balance_data)
 
             if cash_flow_data:
-                st.subheader("💰 Cash Flow Statement (Latest Year)")
-                st.write(cash_flow_data)
-            else:
-                st.warning("⚠️ No Cash Flow Statement data available.")
+                with st.expander("💰 Cash Flow Statement (Latest Year)"):
+                    st.write(cash_flow_data)
 
             # ✅ AI-Powered Stock Analysis
             if income_data and balance_data and cash_flow_data:
@@ -144,8 +132,9 @@ if st.button("Analyze Stock"):
                     ai_analysis = analyze_stock_with_ai(company, income_data, balance_data, cash_flow_data)
 
                 st.subheader("🤖 AI Stock Assessment")
-                st.write(ai_analysis)
+                st.markdown(f"**Investment Insights:**\n\n{ai_analysis}")
             else:
                 st.warning("⚠️ Not enough financial data for AI analysis.")
         else:
             st.error("⚠️ No data found for this ticker. Please check the ticker symbol and try again.")
+
