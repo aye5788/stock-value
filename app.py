@@ -85,17 +85,17 @@ if st.button("Analyze Stock"):
         Based on this data, summarize the **DCF valuation's significance** and what it means for investors. Also, provide insight into the company's **financial health and investment potential**.
         """
         try:
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a financial analyst."},
                     {"role": "user", "content": ai_prompt}
                 ]
             )
-            ai_output = response["choices"][0]["message"]["content"]
+            ai_output = response.choices[0].message.content
             st.write(ai_output)
 
-        except openai.error.OpenAIError as e:
+        except openai.OpenAIError as e:
             st.error(f"⚠️ AI analysis failed. Error: {str(e)}")
 
 
