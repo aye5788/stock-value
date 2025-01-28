@@ -2,15 +2,22 @@ import os
 import requests
 import streamlit as st
 from dotenv import load_dotenv
-from langchain_community.chat_models import ChatOpenAI  # FIXED IMPORT
-from langchain.schema import HumanMessage  # Still the same
+from langchain_community.chat_models import ChatOpenAI  # Fixed Import for LangChain 0.1+
+from langchain.schema import HumanMessage
 
-# Load environment variables
+# Load environment variables (for local development)
 load_dotenv()
 
 # Get API keys
 FMP_API_KEY = os.getenv("FMP_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# ✅ Debugging: Check if API keys are loaded
+st.write(f"🔍 DEBUG: FMP_API_KEY Loaded: {'Yes' if FMP_API_KEY else 'No'}")
+st.write(f"🔍 DEBUG: OPENAI_API_KEY Loaded: {'Yes' if OPENAI_API_KEY else 'No'}")
+
+if not FMP_API_KEY or not OPENAI_API_KEY:
+    st.error("❌ API keys are missing. Ensure they are set as GitHub Secrets and passed correctly in GitHub Actions.")
 
 # Streamlit App Config
 st.set_page_config(page_title="📈 AI Stock Analyzer", layout="wide")
@@ -28,6 +35,7 @@ def fetch_stock_profile(ticker):
 # Function to generate AI analysis using LangChain (GPT-4)
 def analyze_stock_with_ai(company):
     llm = ChatOpenAI(model_name="gpt-4", temperature=0.2, openai_api_key=OPENAI_API_KEY)
+    
     prompt = f"""
     Analyze the stock {company['companyName']} ({ticker}) based on:
     - Stock Price: ${company['price']}
@@ -42,6 +50,7 @@ def analyze_stock_with_ai(company):
     - Risk factors
     - Investment outlook
     """
+
     response = llm([HumanMessage(content=prompt)]).content
     return response
 
