@@ -22,6 +22,15 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Debug Environment Variables
+        run: |
+          echo "🔍 DEBUG: Checking API Keys"
+          echo "FMP_API_KEY is set? $(if [[ -n "$FMP_API_KEY" ]]; then echo 'YES'; else echo 'NO'; fi)"
+          echo "OPENAI_API_KEY is set? $(if [[ -n "$OPENAI_API_KEY" ]]; then echo 'YES'; else echo 'NO'; fi)"
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
       - name: Run Streamlit App
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
