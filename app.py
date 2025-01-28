@@ -7,7 +7,7 @@ import openai
 # Load environment variables
 load_dotenv()
 
-# Streamlit Config (MUST BE FIRST)
+# Streamlit Config
 st.set_page_config(page_title="📈 AI Stock Analyzer", layout="wide")
 
 st.title("📊 AI-Powered Stock Analysis Dashboard")
@@ -137,13 +137,13 @@ if profile and dcf_data and balance_sheet and cash_flow and financial_ratios and
     """
 
     try:
-        openai.api_key = OPENAI_API_KEY
-        response = openai.ChatCompletion.create(
+        client = openai.Client(api_key=OPENAI_API_KEY)
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "system", "content": "You are a financial analyst."},
                       {"role": "user", "content": ai_prompt}],
         )
-        st.write(response["choices"][0]["message"]["content"])
+        st.write(response.choices[0].message.content)
     except Exception as e:
         st.error(f"⚠️ AI analysis failed. Try again later. Error: {e}")
 
