@@ -2,13 +2,13 @@ import os
 import requests
 import streamlit as st
 from dotenv import load_dotenv
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import HumanMessage
+from langchain_community.chat_models import ChatOpenAI  # FIXED IMPORT
+from langchain.schema import HumanMessage  # Still the same
 
-# Load environment variables (for local development)
+# Load environment variables
 load_dotenv()
 
-# Get API keys from environment variables
+# Get API keys
 FMP_API_KEY = os.getenv("FMP_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -29,7 +29,7 @@ def fetch_stock_profile(ticker):
 def analyze_stock_with_ai(company):
     llm = ChatOpenAI(model_name="gpt-4", temperature=0.2, openai_api_key=OPENAI_API_KEY)
     prompt = f"""
-    Analyze the stock {company['companyName']} ({company['symbol']}) based on:
+    Analyze the stock {company['companyName']} ({ticker}) based on:
     - Stock Price: ${company['price']}
     - Market Cap: ${company['mktCap']}
     - Industry: {company['industry']}
@@ -77,3 +77,4 @@ if st.button("Analyze Stock"):
 
             st.subheader("🤖 AI Stock Assessment")
             st.write(ai_analysis)
+
