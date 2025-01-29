@@ -2,10 +2,12 @@ import streamlit as st
 import requests
 import openai
 
-# ✅ Load API Keys (Corrected)
-FMP_API_KEY = st.secrets["FMP_API_KEY"]
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-openai.api_key = OPENAI_API_KEY  # Set OpenAI API key
+# ✅ Load API keys correctly
+FMP_API_KEY = st.secrets["FMP_API_KEY"]  # 🔥 FIXED: Now correctly accessing the key
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]  # 🔥 FIXED: Now correctly accessing the key
+
+# Set OpenAI API key
+openai.api_key = OPENAI_API_KEY
 
 # 🎨 Streamlit UI Setup
 st.title("📊 AI-Powered Stock Analysis Dashboard")
