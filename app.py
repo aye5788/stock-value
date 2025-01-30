@@ -2,117 +2,105 @@ import streamlit as st
 import requests
 import openai
 
-# ✅ Load API keys correctly
-FMP_API_KEY = st.secrets["FMP_API_KEY"]  # 🔥 FIXED: Now correctly accessing the key
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]  # 🔥 FIXED: Now correctly accessing the key
+# ✅ Load API keys correctly from secrets
+FMP_API_KEY = st.secrets["api_keys"]["FMP_API_KEY"]
+OPENAI_API_KEY = st.secrets["api_keys"]["OPENAI_API_KEY"]
+openai.api_key = OPENAI_API_KEY  # Set OpenAI API key
 
-# Set OpenAI API key
-openai.api_key = OPENAI_API_KEY
-
-# 🎨 Streamlit UI Setup
+# 🎨 Streamlit App Title
 st.title("📊 AI-Powered Stock Analysis Dashboard")
+
+# 🔍 User Input for Stock Ticker
 ticker = st.text_input("Enter Stock Ticker (e.g., AAPL)", "AAPL")
 
 if st.button("Analyze Stock"):
     try:
-        # ✅ Fetch DCF Valuation
-        dcf_url = f"https://financialmodelingprep.com/api/v3/discounted-cash-flow/{ticker}?apikey={FMP_API_KEY}"
-        dcf_data = requests.get(dcf_url).json()[0]
-        dcf_value = float(dcf_data["dcf"])
-        stock_price = float(dcf_data["Stock Price"])
-        dcf_difference = ((stock_price - dcf_value) / dcf_value) * 100
+        # ✅ Fetch Company Profile (includes sector)
+        profile_url = f"https://financialmodelingprep.com/api/v3/profile/{ticker}?apikey={FMP_API_KEY}"
+        profile_data = requests.get(profile_url).json()
+        
+        if not profile_data or "error" in profile_data:
+            st.error("No data found for this ticker. Please check the symbol and try again.")
+            st.stop()
 
-        # ✅ Fetch Balance Sheet
-        balance_url = f"https://financialmodelingprep.com/api/v3/balance-sheet-statement/{ticker}?apikey={FMP_API_KEY}&limit=1"
-        balance_data = requests.get(balance_url).json()[0]
-        total_assets = balance_data["totalAssets"]
-        total_liabilities = balance_data["totalLiabilities"]
-        shareholder_equity = balance_data["totalStockholdersEquity"]
+        company_name = profile_data[0]["companyName"]
+        sector = profile_data[0]["sector"]
+        stock_price = profile_data[0]["price"]
 
-        # ✅ Fetch Cash Flow Statement
-        cashflow_url = f"https://financialmodelingprep.com/api/v3/cash-flow-statement/{ticker}?apikey={FMP_API_KEY}&limit=1"
-        cashflow_data = requests.get(cashflow_url).json()[0]
-        operating_cash_flow = cashflow_data["operatingCashFlow"]
-        capital_expenditures = cashflow_data["capitalExpenditure"]
-        free_cash_flow = cashflow_data["freeCashFlow"]
+        # ✅ Fetch Financial Ratios
+        ratios_url = f"https://financialmodelingprep.com/api/v3/ratios/{ticker}?apikey={FMP_API_KEY}"
+        ratios_data = requests.get(ratios_url).json()
 
-        # ✅ Fetch Key Financial Ratios
-        ratios_url = f"https://financialmodelingprep.com/api/v3/ratios/{ticker}?apikey={FMP_API_KEY}&limit=1"
-        ratios_data = requests.get(ratios_url).json()[0]
-        pe_ratio = ratios_data["priceEarningsRatio"]
-        roe = ratios_data["returnOnEquity"]
-        debt_to_equity = ratios_data["debtEquityRatio"]
+        if not ratios_data or isinstance(ratios_data, dict):
+            st.error("Failed to retrieve financial ratios.")
+            st.stop()
+
+        latest_ratios = ratios_data[0]
+        pe_ratio = latest_ratios.get("priceEarningsRatio", "N/A")
+        roe = latest_ratios.get("returnOnEquity", "N/A")
+        debt_to_equity = latest_ratios.get("debtEquityRatio", "N/A")
+
+        # ✅ Fetch Sector P/E Ratio for comparison
+        sector_pe_url = f"https://financialmodelingprep.com/api/v4/sector_price_earning_ratio?date=2023-10-10&exchange=NYSE&apikey={FMP_API_KEY}"
+        sector_pe_data = requests.get(sector_pe_url).json()
+        sector_pe_ratio = next((item["pe"] for item in sector_pe_data if item["sector"] == sector), "N/A")
 
         # ✅ Fetch Financial Health Scores
-        health_url = f"https://financialmodelingprep.com/api/v4/score?symbol={ticker}&apikey={FMP_API_KEY}"
-        health_data = requests.get(health_url).json()[0]
-        altman_z_score = health_data["altmanZScore"]
-        piotroski_score = health_data["piotroskiScore"]
+        health_url = f"https://financialmodelingprep.com/api/v3/financial-growth/{ticker}?apikey={FMP_API_KEY}"
+        health_data = requests.get(health_url).json()
 
-        # ✅ Fetch Sector and Compare P/E with Sector P/E
-        profile_url = f"https://financialmodelingprep.com/api/v3/profile/{ticker}?apikey={FMP_API_KEY}"
-        profile_data = requests.get(profile_url).json()[0]
-        stock_sector = profile_data["sector"]
+        if not health_data or isinstance(health_data, dict):
+            st.error("Failed to retrieve financial health scores.")
+            st.stop()
 
-        sector_pe_url = f"https://financialmodelingprep.com/api/v4/sector_price_earning_ratio?exchange=NYSE&apikey={FMP_API_KEY}"
-        sector_pe_data = requests.get(sector_pe_url).json()
-        sector_pe = next((s["pe"] for s in sector_pe_data if s["sector"] == stock_sector), None)
+        latest_health = health_data[0]
+        altman_z_score = latest_health.get("altmanZScore", "N/A")
+        piotroski_score = latest_health.get("piotroskiScore", "N/A")
 
-        # 🎯 **Display Data**
-        st.markdown("## 🌟 DCF Valuation")
-        st.markdown(f"📄 **Intrinsic Value (DCF)**: **${dcf_value:.2f}**")
-        st.markdown(f"💰 **Current Stock Price**: **${stock_price:.2f}**")
-        st.markdown(f"📊 **Difference**: {dcf_difference:.2f}%")
+        # 🎯 Display Results
+        st.markdown(f"## {company_name} ({ticker})")
+        st.markdown(f"**Sector:** {sector}")
+        st.markdown(f"**Current Stock Price:** ${stock_price}")
 
-        st.markdown("## 📋 Balance Sheet (Latest Year)")
-        st.write(f"**Total Assets**: ${total_assets:,.0f}")
-        st.write(f"**Total Liabilities**: ${total_liabilities:,.0f}")
-        st.write(f"**Shareholder Equity**: ${shareholder_equity:,.0f}")
+        # 📊 Key Financial Ratios
+        st.subheader("📊 Key Financial Ratios")
+        st.write(f"🔹 **P/E Ratio:** {pe_ratio}")
+        st.write(f"🔹 **Sector P/E Ratio:** {sector_pe_ratio}")
+        st.write(f"🔹 **ROE:** {roe}")
+        st.write(f"🔹 **Debt/Equity Ratio:** {debt_to_equity}")
 
-        st.markdown("## 💵 Cash Flow Statement (Latest Year)")
-        st.write(f"**Operating Cash Flow**: ${operating_cash_flow:,.0f}")
-        st.write(f"**Capital Expenditures**: ${capital_expenditures:,.0f}")
-        st.write(f"**Free Cash Flow**: ${free_cash_flow:,.0f}")
+        # 🏆 Financial Health Scores
+        st.subheader("🏆 Financial Health Scores")
+        st.write(f"🎖 **Altman Z-Score:** {altman_z_score}")
+        st.write(f"📊 **Piotroski Score:** {piotroski_score}")
 
-        st.markdown("## 📈 Key Financial Ratios")
-        st.write(f"📊 **P/E Ratio**: {pe_ratio:.2f}")
-        st.write(f"📈 **ROE**: {roe:.2f}")
-        st.write(f"💳 **Debt/Equity Ratio**: {debt_to_equity:.2f}")
-
-        if sector_pe:
-            st.write(f"🏢 **Sector Average P/E (for {stock_sector})**: {sector_pe:.2f}")
-            st.write(f"📉 **P/E Compared to Sector**: {'Overvalued' if pe_ratio > sector_pe else 'Undervalued'}")
-
-        st.markdown("## 🏆 Financial Health Scores")
-        st.write(f"🟢 **Altman Z-Score**: {altman_z_score:.2f}")
-        st.write(f"🔵 **Piotroski Score**: {piotroski_score:.2f}")
-
-        # ✅ **AI-Powered Insights**
-        st.markdown("## 🤖 AI Insights")
+        # 🧠 AI Insights
+        st.subheader("🤖 AI Insights")
         ai_prompt = f"""
-        Based on the following financial metrics:
-        - **DCF Valuation**: ${dcf_value:.2f} (Stock Price: ${stock_price:.2f}, Difference: {dcf_difference:.2f}%)
-        - **Balance Sheet**: Total Assets: ${total_assets:,.0f}, Liabilities: ${total_liabilities:,.0f}, Equity: ${shareholder_equity:,.0f}
-        - **Cash Flow**: Operating CF: ${operating_cash_flow:,.0f}, Free CF: ${free_cash_flow:,.0f}
-        - **Key Ratios**: P/E Ratio: {pe_ratio:.2f}, ROE: {roe:.2f}, Debt/Equity: {debt_to_equity:.2f}
-        - **Sector P/E**: {sector_pe:.2f} (Sector: {stock_sector})
-        - **Financial Health**: Altman Z-Score: {altman_z_score:.2f}, Piotroski Score: {piotroski_score:.2f}
+        Analyze the financial health of {company_name} ({ticker}) based on the following:
+        - Sector: {sector}
+        - Current Price: ${stock_price}
+        - P/E Ratio: {pe_ratio} vs. Sector P/E: {sector_pe_ratio}
+        - ROE: {roe}
+        - Debt/Equity Ratio: {debt_to_equity}
+        - Altman Z-Score: {altman_z_score}
+        - Piotroski Score: {piotroski_score}
 
-        Provide an analysis of the financial health and valuation of the stock.
+        Provide insights on whether this stock is overvalued or undervalued, and whether it is financially healthy.
         """
-        
+
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[{"role": "system", "content": "You are a financial analyst."},
-                          {"role": "user", "content": ai_prompt}]
+                          {"role": "user", "content": ai_prompt}],
             )
             ai_analysis = response["choices"][0]["message"]["content"]
-            st.success("AI Analysis Generated Successfully!")
-            st.write(ai_analysis)
-
         except Exception as e:
-            st.error(f"AI analysis failed. Try again later. \n\nError: {str(e)}")
+            ai_analysis = f"⚠️ AI analysis failed. Error: {e}"
+
+        st.markdown(ai_analysis)
 
     except Exception as e:
-        st.error(f"An error occurred. Please try again later.\n\nError: {str(e)}")
+        st.error(f"An error occurred. Please try again later.\n\nError: {e}")
+
